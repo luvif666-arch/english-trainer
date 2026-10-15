@@ -1,17 +1,16 @@
 // ===== 点词查词 =====
-// 单词：dictionaryapi.dev（英文释义/音标/例句，CC BY-SA 3.0）+ MyMemory（中文翻译）
-// 全部走公开免费接口，结果缓存在 localStorage，查过的不重复请求。
+// 三层来源（按速度优先级）：
+//   1. 本地缓存 —— 查过的词直接返回
+//   2. 内置离线词典 —— 外贸高频词，零延迟、零网络（约 120 词）
+//   3. MyMemory 在线翻译 —— 补中文释义（dictionaryapi.dev 在浏览器里 CORS 被拒，已弃用）
 
 const dictCache = JSON.parse(localStorage.getItem('trade-english-dict-cache') || '{}');
 let dictPending = null;
 
 function cacheSet(k, v) {
   dictCache[k] = v;
-  // 控制缓存体积，超了就丢最早的一半
   const keys = Object.keys(dictCache);
-  if (keys.length > 600) {
-    keys.slice(0, 300).forEach(k2 => delete dictCache[k2]);
-  }
+  if (keys.length > 600) keys.slice(0, 300).forEach(k2 => delete dictCache[k2]);
   try { localStorage.setItem('trade-english-dict-cache', JSON.stringify(dictCache)); } catch (e) { }
 }
 
@@ -20,62 +19,57 @@ function openDict(word, sentence) {
   const card = $('dictCard');
   card.style.display = 'block';
   $('dictWord').textContent = word;
-  $('dictBody').innerHTML = '<div class="dict-loading">查询中…</div>';
   card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  // 先占位，同时立刻读本地
+  $('dictBody').innerHTML = '<div class="dict-loading">查询中…</div>';
+  $('btnDictSpeak').onclick = () => { };
 
-  const en = word.toLowerCase();
+  const en = word.toLowerCase().replace(/[^a-z'-]/g, '');
   if (dictCache[en]) { renderDict(word, dictCache[en], sentence); return; }
+
+  // ① 离线词典命中：立即渲染，不等网络
+  const local = lookupLocal(word);
+  let base = null;
+  if (local.found) {
+    base = {
+      phonetic: local.ipa || '',
+      defs: [{ pos: local.pos, def: local.def, ex: local.ex }],
+      zh: local.zh || ''
+    };
+    renderDict(word, base, sentence, true);   // 离线命中，不显示"查询中"
+  }
+
   if (dictPending) dictPending.abort();
   const ctl = new AbortController();
   dictPending = ctl;
-  // 单个请求最长等6 秒，超了就用已有结果渲染，绝不卡在"查询中"
   const timer = setTimeout(() => ctl.abort(), 6000);
 
-  const fail = err => { err && err.name === 'AbortError' && null; };
+  // ② 补中文（离线词典已有中文则跳过）
+  if (base && base.zh) { clearTimeout(timer); return; }
 
-  Promise.allSettled([
-    fetch('https://api.dictionaryapi.dev/api/v2/entries/en/' + encodeURIComponent(en), { signal: ctl.signal })
-      .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))).catch(e => { fail(e); return null; }),
-    fetch('https://api.mymemory.translated.net/get?q=' + encodeURIComponent(en) + '&langpair=en|zh-CN', { signal: ctl.signal })
-      .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))).catch(e => { fail(e); return null; })
-  ]).then(([dictRes, transRes]) => {
-    clearTimeout(timer);
-    if (ctl.signal.aborted && dictPending === ctl) { /* 超时或被新查询取代 */ }
-    const dict = dictRes.status === 'fulfilled' ? dictRes.value : null;
-    const trans = transRes.status === 'fulfilled' ? transRes.value : null;
-
-    const entry = dict && dict[0] ? dict[0] : null;
-    let phonetic = '';
-    let defs = [];
-    if (entry) {
-      if (entry.phonetic) phonetic = entry.phonetic;
-      else if (entry.phonetics && entry.phonetics.length) {
-        const p = entry.phonetics.find(x => x.text);
-        if (p) phonetic = p.text;
-      }
-      (entry.meanings || []).slice(0, 3).forEach(m => {
-        (m.definitions || []).slice(0, 2).forEach(d => {
-          defs.push({ pos: m.partOfSpeech || '', def: d.definition || '', ex: d.example || '' });
-        });
-      });
-    }
-    const zh = trans && trans.responseData ? (trans.responseData.translatedText || '') : '';
-    const data = { phonetic, defs: defs.slice(0, 5), zh: /^\d+$|^[\s\W]*$/.test(zh) ? '' : zh };
-
-    if (!data.phonetic && !data.defs.length && !data.zh) {
+  fetch('https://api.mymemory.translated.net/get?q=' + encodeURIComponent(word) + '&langpair=en|zh-CN', { signal: ctl.signal })
+    .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+    .then(d => {
+      clearTimeout(timer);
+      const zh = d && d.responseData ? (d.responseData.translatedText || '') : '';
+      if (!zh || /^\d+$/.test(zh.trim())) throw new Error('no translation');
+      const data = base
+        ? { ...base, zh: zh.replace(/^[\s\W]*|\s*$/g, '').replace(/^v\.|^n\.|^adj\.\s*/i, '') }
+        : { phonetic: '', defs: [], zh: zh.trim() };
+      cacheSet(en, data);
+      renderDict(word, data, sentence);
+    })
+    .catch(() => {
+      clearTimeout(timer);
+      if (base) return;   // 离线词典已经渲染过了，忽略
       $('dictBody').innerHTML = `<div class="dict-loading">
         没查到「${esc(word)}」。<br>
-        <span style="color:var(--tx-3)">可能是专有名词/缩写，或词典服务暂时不可用。试试换个词，或联网后再试。</span>
+        <span style="color:var(--tx-3)">可能是专有名词/缩写，或是翻译服务暂时不可用。换个词或联网后再试。</span>
       </div>`;
-      $('btnDictSpeak').onclick = () => { };
-      return;
-    }
-    cacheSet(en, data);
-    renderDict(word, data, sentence);
-  });
+    });
 }
 
-function renderDict(word, data, sentence) {
+function renderDict(word, data, sentence, isLocal) {
   const reg = getRegion(S.region);
   const u = new SpeechSynthesisUtterance(word);
   const v = pickVoice(reg.voice);
@@ -85,9 +79,11 @@ function renderDict(word, data, sentence) {
   let html = '';
   if (data.zh) html += `<div class="dict-zh">${esc(data.zh)}</div>`;
   if (data.phonetic) html += `<div class="dict-ipa">${esc(data.phonetic)}</div>`;
-  if (data.defs.length) {
+  if (isLocal) html += '<div class="dict-src">内置外贸词典 · 离线</div>';
+  if (data.defs && data.defs.length) {
     html += '<div class="dict-defs">';
     data.defs.forEach(d => {
+      if (!d.def) return;
       html += `<div class="dict-def">
         ${d.pos ? `<span class="dict-pos">${esc(d.pos)}</span>` : ''}
         <span class="dict-text">${esc(d.def)}</span>
