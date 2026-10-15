@@ -389,6 +389,10 @@ audio{width:100%;height:34px}
 .dict-loading{font-size:13px;color:var(--tx-3);padding:6px 0}
 .dict-zh{font-size:15px;margin-bottom:6px;color:#9fe1cb}
 .dict-ipa{font-size:13px;color:var(--tx-2);margin-bottom:12px;font-family:var(--font-mono)}
+.dict-src{
+  font-size:10px;color:var(--teal);background:rgba(43,185,138,.1);
+  padding:1px 7px;border-radius:99px;display:inline-block;margin-bottom:12px;
+}
 .dict-defs{display:flex;flex-direction:column;gap:10px}
 .dict-def{font-size:13px;line-height:1.6}
 .dict-pos{
