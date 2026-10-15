@@ -1,0 +1,4 @@
+dev/_shot_*.png
+dev/_m_*.png
+node_modules/
+.DS_Store

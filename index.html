@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>外贸口语工作台 · 影子跟读训练系统</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">ET</div>
+    <div>
+      <h1>外贸口语工作台</h1>
+      <p class="sub">影子跟读 · 复述 · AI 陪练 · 进度追踪</p>
+    </div>
+  </div>
+  <div class="top-right">
+    <div class="streak-chip" id="streakChip" title="连续学习天数">
+      <span class="flame">◆</span><span id="streakNum">0</span> 天
+    </div>
+    <div class="xp-chip" title="累计完成项">
+      累计 <span id="totalDone">0</span> 项
+    </div>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-view="dashboard">总览</button>
+  <button class="tab" data-view="shadow">影子跟读</button>
+  <button class="tab" data-view="record">录音复述</button>
+  <button class="tab" data-view="roleplay">AI 陪练</button>
+  <button class="tab" data-view="scripts">话术库</button>
+  <button class="tab" data-view="dialogue">实景对话</button>
+  <button class="tab" data-view="region">目标地区</button>
+  <button class="tab" data-view="pack">素材包</button>
+  <button class="tab" data-view="path">8周路径</button>
+</nav>
+
+<main>
+
+<!-- ============ 总览 ============ -->
+<section class="view active" id="view-dashboard">
+  <div class="grid-4">
+    <div class="stat">
+      <div class="stat-label">总体完成度</div>
+      <div class="stat-value" id="statOverall">0%</div>
+      <div class="bar"><div class="bar-fill" id="barOverall" style="width:0%"></div></div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">跟读完成</div>
+      <div class="stat-value" id="statShadow">0%</div>
+      <div class="bar"><div class="bar-fill" id="barShadow" style="width:0%"></div></div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">复述完成</div>
+      <div class="stat-value" id="statRecord">0%</div>
+      <div class="bar"><div class="bar-fill" id="barRecord" style="width:0%"></div></div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">陪练完成</div>
+      <div class="stat-value" id="statRole">0%</div>
+      <div class="bar"><div class="bar-fill" id="barRole" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="panel">
+      <h2>今日 40 分钟任务</h2>
+      <div id="todayTasks" class="task-list"></div>
+    </div>
+    <div class="panel">
+      <h2>能力雷达（自评 1–5）</h2>
+      <p class="hint">每周五花 2 分钟自评一次，看清短板在哪一环。</p>
+      <div id="radarBox" class="radar-box"></div>
+      <button class="btn ghost" id="btnSaveRadar">保存本周自评</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>近 14 天活跃</h2>
+    <div id="heatBox" class="heat-box"></div>
+  </div>
+</section>
+
+<!-- ============ 影子跟读 ============ -->
+<section class="view" id="view-shadow">
+  <div class="two-col">
+    <div class="panel">
+      <h2>① 导入音频 / 视频</h2>
+      <p class="hint">支持 mp3 / m4a / wav / mp4 等。本地播放，不上传服务器。</p>
+      <div class="row">
+        <input type="file" id="audioFile" accept="audio/*,video/*">
+      </div>
+      <div class="row">
+        <label class="field">
+          <span>标题</span>
+          <input type="text" id="audioTitle" placeholder="例：BBC 商务谈判第3 集">
+        </label>
+      </div>
+
+      <h2 style="margin-top:22px">② 没有字幕？自动生成</h2>
+      <p class="hint">在你自己浏览器里跑 Whisper 语音识别，音频不出本机。首次需下载模型，之后浏览器缓存、离线可用。</p>
+      <div class="row">
+        <label class="field" style="max-width:300px">
+          <span>识别模型</span>
+          <select id="asrModel"></select>
+        </label>
+      </div>
+      <div class="ctrl-row" style="margin-bottom:12px">
+        <button class="btn primary" id="btnASR">开始自动生成字幕</button>
+      </div>
+      <div class="asr-status">
+        <div class="asr-status-head">
+          <div class="asr-dot idle" id="asrDot"></div>
+          <span id="asrStatus">选择音视频文件后点「开始识别」</span>
+        </div>
+        <div class="bar" id="asrProgress" style="margin-top:9px">
+          <div class="bar-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <h2 style="margin-top:22px">③ 或导入现成字幕（SRT / VTT）</h2>
+      <p class="hint">YouTube 可手动下载英文字幕。没有字幕也行，可手写句子。</p>
+      <div class="row">
+        <input type="file" id="subFile" accept=".srt,.vtt">
+      </div>
+
+      <h2 style="margin-top:22px">手写句子（无字幕时用）</h2>
+      <p class="hint">每行一句，标点结尾。手动拆分意群，适合精读训练。</p>
+      <textarea id="manualLines" rows="5" placeholder="Good morning. This is John calling from ABC Trading.&#10;We specialize in stainless steel fittings for the food industry."></textarea>
+      <div class="row">
+        <button class="btn" id="btnLoadMaterial">载入播放器</button>
+        <button class="btn ghost" id="btnSample">填入示例</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>从视频网站链接导入</h2>
+      <p class="hint">支持 B站 / YouTube 等。粘贴链接，这里给你一条命令，本地下载后拖回左侧即可。</p>
+      <div class="row">
+        <input type="text" id="urlInput" placeholder="粘贴 B站或 YouTube 视频链接…">
+        <button class="btn" id="btnParseURL">解析</button>
+      </div>
+      <div id="urlGuide" class="url-guide" style="display:none"></div>
+    </div>
+
+    <div class="panel full-span" id="playerPanel">
+      <h2>逐句跟读播放器</h2>
+      <div class="player-wrap">
+        <audio id="audioEl" controls preload="metadata"></audio>
+      </div>
+
+      <div class="player-meta">
+        <div class="now-line" id="nowLine">尚未载入材料</div>
+        <div class="now-sub" id="nowSub">左侧导入音频后开始</div>
+      </div>
+
+      <div class="speed-row">
+        <span class="mini-label">语速</span>
+        <div class="speed-btns">
+          <button class="chip" data-speed="0.6">0.6×</button>
+          <button class="chip" data-speed="0.8">0.8×</button>
+          <button class="chip active" data-speed="1">1.0×</button>
+          <button class="chip" data-speed="1.2">1.2×</button>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="loopToggle" checked>
+          <span>单句循环</span>
+        </label>
+      </div>
+
+      <div class="ctrl-row">
+        <button class="btn ghost" id="btnPrev">上一句</button>
+        <button class="btn" id="btnReplay">重听本句</button>
+        <button class="btn ghost" id="btnNext">下一句</button>
+      </div>
+
+      <div class="line-list-wrap">
+        <div class="line-list-head">
+          <h3>句子列表</h3>
+          <div class="mini-label">点句跳转 · 双击标记已掌握</div>
+        </div>
+        <div id="lineList" class="line-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>本轮跟读完成度</h2>
+    <p class="hint">勾选代表这句已经能同步跟读下来。全部掌握后再换新材料。</p>
+    <div class="bar big"><div class="bar-fill" id="barShadowDetail" style="width:0%"></div></div>
+    <div class="row spread">
+      <span class="hint" id="shadowDetailText">0 / 0 句</span>
+      <button class="btn" id="btnFinishShadow">完成本轮，计入总进度</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 录音复述 ============ -->
+<section class="view" id="view-record">
+  <div class="two-col">
+    <div class="panel">
+      <h2>今日复述任务</h2>
+      <p class="hint">2 分钟脱稿讲：不看任何材料，把今天的内容讲一遍。录音后回听，找出卡壳的地方。</p>
+      <label class="field">
+        <span>题目</span>
+        <select id="recordTopic">
+          <option>用英文介绍你的产品（2 分钟）</option>
+          <option>介绍你的公司实力与产能</option>
+          <option>模拟报价：客户要 5000 件，问价</option>
+          <option>处理交期延误的投诉</option>
+          <option>展会开场：向南非客户介绍产品</option>
+          <option>随机（由 AI 出题）</option>
+        </select>
+      </label>
+
+      <div class="rec-area">
+        <div class="rec-dot" id="recDot"></div>
+        <div class="rec-time" id="recTime">00:00</div>
+        <div class="rec-hint" id="recHint">点击下方按钮开始录音</div>
+      </div>
+
+      <div class="ctrl-row center">
+        <button class="btn danger" id="btnRec">● 开始录音</button>
+        <button class="btn ghost" id="btnPlayRec" disabled>▶ 回放</button>
+      </div>
+
+      <div class="row" id="recListWrap" style="margin-top:18px">
+        <h3>历史录音</h3>
+        <div id="recList" class="mini-list"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>自评清单</h2>
+      <p class="hint">回听时逐项打分。这一栏比任何 AI 打分都准。</p>
+      <div id="selfCheck" class="check-list"></div>
+      <button class="btn" id="btnFinishRecord">提交并计入进度</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ AI 陪练 ============ -->
+<section class="view" id="view-roleplay">
+  <div class="two-col">
+    <div class="panel">
+      <h2>选择场景</h2>
+      <div class="row">
+        <label class="field">
+          <span>客户角色</span>
+          <select id="rpRole">
+            <option>专业采购经理（直接、节奏快、只认数字）</option>
+            <option>小型批发商（价格敏感，爱反复砍价）</option>
+            <option>大型连锁采购（重视资质、认证、条款严谨）</option>
+            <option>展会现场客户（嘈杂环境，简短交流）</option>
+            <option>项目负责人（技术出身，追问参数细节）</option>
+          </select>
+        </label>
+      </div>
+      <p class="hint" id="rpRegionHint"></p>
+      <label class="field">
+        <span>场景</span>
+        <select id="rpScene">
+          <option>电话冷开场 + 自我介绍</option>
+          <option>报价与议价（价格 / MOQ / 付款方式）</option>
+          <option>产品讲解与演示答疑</option>
+          <option>催交期与延期道歉</option>
+          <option>质量投诉与索赔处理</option>
+          <option>验厂 / 合规 / 物流问答</option>
+          <option>破冰闲聊（cricket / rugby / load shedding）</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>难度</span>
+        <select id="rpLevel">
+          <option>友好开局，允许你用简单句</option>
+          <option>正常商务，会打断、会追问</option>
+          <option>压力模式，语速快、连续质疑、故意沉默</option>
+        </select>
+      </label>
+      <div class="row">
+        <button class="btn primary" id="btnGenPrompt">生成 AI 陪练提示词</button>
+      </div>
+      <p class="hint">生成后复制到任意AI 对话（GPT / Claude 等）粘贴使用，对话内容不会被存在本工具里。</p>
+    </div>
+
+    <div class="panel">
+      <h2>提示词</h2>
+      <textarea id="rpPrompt" rows="16" placeholder="点击左侧按钮生成…"></textarea>
+      <div class="ctrl-row">
+        <button class="btn" id="btnCopyPrompt">复制</button>
+        <button class="btn ghost" id="btnRecordRP">标记本轮已完成</button>
+      </div>
+
+      <h3 style="margin-top:22px">自己记的要点</h3>
+      <div class="mini-list" id="rpNotes"></div>
+      <div class="row">
+        <input type="text" id="rpNoteInput" placeholder="记一句这次说得不好的地方…">
+        <button class="btn ghost" id="btnAddNote">记下</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 话术库 ============ -->
+<section class="view" id="view-scripts">
+  <div class="panel">
+    <h2>外贸六大场景话术</h2>
+    <p class="hint">把方括号内容替换成你自己的产品、价格、产能。点句子复制。</p>
+    <div class="row">
+      <label class="field" style="max-width:280px">
+        <span>我的产品（用于自动替换）</span>
+        <input type="text" id="myProduct" placeholder="stainless steel fittings">
+      </label>
+      <label class="field" style="max-width:220px">
+        <span>公司名</span>
+        <input type="text" id="myCompany" placeholder="ABC Trading">
+      </label>
+    </div>
+  </div>
+  <div id="scriptBox" class="script-grid"></div>
+</section>
+
+<!-- ============ 实景对话 ============ -->
+<section class="view" id="view-dialogue">
+  <div class="panel">
+    <h2>全流程模拟对话</h2>
+    <p class="hint">按真实客户接触的时间线排列。建议先遮住英文只读中文提示，练到能接话为止，再对照英文。点任意一句可单独朗读（电脑语音，无需联网音频）。</p>
+    <div class="row">
+      <label class="field" style="max-width:300px">
+        <span>选择剧本</span>
+        <select id="dlgSelect"></select>
+      </label>
+      <label class="field" style="max-width:220px">
+        <span>目标地区</span>
+        <select id="dlgRegion"></select>
+      </label>
+      <label class="field" style="max-width:160px">
+        <span>语速</span>
+        <select id="dlgRate">
+          <option value="0.8">0.8× 慢速（初学）</option>
+          <option value="1" selected>1.0× 正常</option>
+          <option value="1.15">1.15× 接近实速</option>
+        </select>
+      </label>
+      <button class="btn ghost" id="btnPlayAll">▶ 连续朗读全篇</button>
+      <button class="btn ghost" id="btnStopAll">■ 停止</button>
+    </div>
+    <div class="row">
+      <label class="toggle"><input type="checkbox" id="dlgHide" checked><span>遮住英文（先看中文提示）</span></label>
+      <label class="toggle"><input type="checkbox" id="dlgOnlyRole"><span>只看「你」的台词（隐藏对方）</span></label>
+    </div>
+  </div>
+  <div class="panel">
+    <div id="dlgMeta" class="dlg-meta"></div>
+    <div id="dlgTip" class="dlg-tip"></div>
+    <div id="dlgBody" class="dlg-body"></div>
+  </div>
+  <div class="panel">
+    <h2>这一段要记住的3 件事</h2>
+    <div id="dlgNotes" class="dlg-notes"></div>
+  </div>
+</section>
+
+<!-- ============ 目标地区 ============ -->
+<section class="view" id="view-region">
+  <div class="panel">
+    <h2>选择你的目标市场</h2>
+    <p class="hint">切换地区会同时改变：语音朗读的口音、话术用词、议价策略提示、AI 陪练的角色设定。<b>不确定就选默认的美式英语</b>——它是覆盖买家最广的通用选项。</p>
+    <div id="regionGrid" class="region-grid"></div>
+  </div>
+
+  <div class="two-col">
+    <div class="panel">
+      <h2 id="rgTitle">地区详情</h2>
+      <p class="hint" id="rgDesc"></p>
+      <div class="rg-speech" id="rgSpeech"></div>
+      <h3 style="margin-top:20px">商务风格对照</h3>
+      <div id="rgStyle" class="rg-style"></div>
+    </div>
+    <div class="panel">
+      <h2>这个地区的关键表达</h2>
+      <p class="hint">点句子复制。这些是当地人真正在用的说法，不是教科书英语。</p>
+      <div id="rgWords" class="rg-words"></div>
+      <div class="ctrl-row" style="margin-top:16px">
+        <button class="btn" id="btnReadRegion">▶ 连续朗读</button>
+        <button class="btn ghost" id="btnStopRegion">■ 停止</button>
+        <button class="btn primary" id="btnApplyRegion">用这个地区去练实景对话</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 素材包 ============ -->
+<section class="view" id="view-pack">
+  <div class="panel">
+    <h2>添加素材到待跟读清单</h2>
+    <p class="hint">把找到的视频/播客记下来，配上地区和难度，练完打勾。下次不用再临时找。</p>
+    <form id="packForm">
+      <div class="row">
+        <label class="field" style="min-width:220px">
+          <span>素材名称</span>
+          <input type="text" id="pkName" placeholder="例：Business English Pod 谈判第 3 集">
+        </label>
+        <label class="field" style="max-width:150px">
+          <span>口音地区</span>
+          <select id="pkRegion"></select>
+        </label>
+        <label class="field" style="max-width:110px">
+          <span>难度</span>
+          <select id="pkLevel">
+            <option>入门</option><option>进阶</option><option>拔高</option>
+          </select>
+        </label>
+        <label class="field" style="max-width:100px">
+          <span>时长(分)</span>
+          <input type="number" id="pkMins" value="10" min="1">
+        </label>
+      </div>
+      <div class="row">
+        <label class="field" style="min-width:260px">
+          <span>链接（可选）</span>
+          <input type="text" id="pkUrl" placeholder="YouTube / B站 链接">
+        </label>
+        <label class="field" style="min-width:220px">
+          <span>备注（可选）</span>
+          <input type="text" id="pkWhy" placeholder="为什么想练它">
+        </label>
+        <button type="submit" class="btn primary">加入清单</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel">
+    <h2>我的清单 + 预置推荐</h2>
+    <div id="packList"></div>
+  </div>
+
+  <div class="panel">
+    <h2>生词本</h2>
+    <p class="hint">查词时点「加入生词本」，难句的词攒到这里。同一词点 3 次算掌握。</p>
+    <div id="vocabList"></div>
+  </div>
+</section>
+
+<!-- ============ 8 周路径 ============ -->
+<section class="view" id="view-path">
+  <div class="panel">
+    <h2>8 周训练路径</h2>
+    <p class="hint">每天 40 分钟。每周完成 5 天，第 6 天休息复盘。</p>
+  </div>
+  <div id="weekBox" class="week-grid"></div>
+  <div class="panel">
+    <h2>数据管理</h2>
+    <p class="hint">所有数据存在浏览器本地，不上传。换电脑前先导出。</p>
+    <div class="ctrl-row">
+      <button class="btn ghost" id="btnExport">导出进度备份</button>
+      <button class="btn ghost" id="btnImport">导入备份</button>
+      <button class="btn danger" id="btnReset">清空全部数据</button>
+      <input type="file" id="importFile" accept=".json" hidden>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="dict-card" id="dictCard" style="display:none">
+  <div class="dict-head">
+    <div class="dict-word" id="dictWord"></div>
+    <div class="dict-acts">
+      <button class="dict-icon" id="btnDictSpeak" title="朗读">▶</button>
+      <button class="dict-icon" id="btnDictSave" title="加入生词本">＋</button>
+      <button class="dict-icon" id="dictClose" title="关闭">×</button>
+    </div>
+  </div>
+  <div class="dict-body" id="dictBody"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/data.js"></script>
+<script src="js/regions.js"></script>
+<script src="js/dialogue.js"></script>
+<script src="js/asr.js"></script>
+<script src="js/urlimport.js"></script>
+<script src="js/dict.js"></script>
+<script src="js/pack.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
