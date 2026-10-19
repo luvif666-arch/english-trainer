@@ -1,49 +1,67 @@
 // ===== 素材包 =====
 // 把"待跟读的材料"存成清单：链接 + 地区 + 难度 + 预计耗时 + 完成状态。
-// 预置一批适合小白的免费素材（欧美官方源为主，避免中式英语）。
+//
+// ⚠️ 网络前提（2026-10-19 实测）：
+//   B站 ✅ 通 / GitHub ✅ 通 / YouTube ❌ 被代理挡 / BBC ❌ 被挡
+//   所以下面 YouTube 源的条目已标注「需网络能连 YouTube」，否则优先走 B站。
+//   下不动的时候别纠结，换B站同题材素材即可。
 
 const PRESET_PACKS = [
   {
+    id: 'p6', name: '哔哩哔哩 · 英文原声播客搬运',
+    level: '入门', region: 'us', mins: 15, dur: '按需', net: 'ok',
+    url: 'https://www.bilibili.com',
+    why: '你这台机器实测唯一能下的平台。B站有不少英文原声播客、访谈、演讲搬运。',
+    tip: '搜「英文播客」「英语访谈」「英语演讲」；用下载器一键下mp3，再拖进影子跟读'
+  },
+  {
+    id: 'p6b', name: '哔哩哔哩 · 商务英语谈判类',
+    level: '入门', region: 'us', mins: 12, dur: '3-4周', net: 'ok',
+    url: 'https://search.bilibili.com/all?keyword=%E5%95%86%E5%8A%A1%E8%8B%B1%E8%AF%AD%E8%B0%88%E5%88%A4',
+    why: '直击外贸最核心的议价场景。B站搜「商务英语谈判」「英语谈判技巧」有大量内容。',
+    tip: '挑有实景对话演练的，别挑纯理论讲解；跟读时重点模仿让步句式'
+  },
+  {
+    id: 'p6c', name: '哔哩哔哩 · 英文邮件写作',
+    level: '入门', region: 'us', mins: 10, dur: '2-3周', net: 'ok',
+    url: 'https://search.bilibili.com/all?keyword=%E8%8B%B1%E6%96%87%E9%82%AE%E4%BB%B6%E5%86%99%E4%BD%9C',
+    why: '外贸 70% 的沟通在邮件里。这个直接补你的实际短板。',
+    tip: '把视频里的句型抄下来，套到你自己的产品上改一遍，比背模板有用'
+  },
+  {
     id: 'p1', name: 'BBC Learning English · 6 Minute English',
-    level: '入门', region: 'uk', mins: 6, dur: '1-2周',
+    level: '入门', region: 'uk', mins: 6, dur: '1-2周', net: 'need',
     url: 'https://www.youtube.com/@bbclearningenglish',
     why: '每集 6 分钟讲一个话题，结尾有总结句可以直接复述。语速适中、英音清晰，最适合起步。',
     tip: '先看中文字幕听懂，再关字幕盲听一遍，最后跟读最后 30 秒的总结'
   },
   {
     id: 'p2', name: 'Business English Pod · 电话与议价',
-    level: '入门', region: 'us', mins: 10, dur: '3-4周',
+    level: '入门', region: 'us', mins: 10, dur: '3-4周', net: 'need',
     url: 'https://www.youtube.com/@BusinessEnglishPod',
     why: '每集8-12 分钟，专攻打电话、询价、议价、投诉——正好是外贸最常用的场景。',
     tip: '挑"Telephone calls"和"Negotiating price"两个系列连着听，会话套路高度重复'
   },
   {
     id: 'p3', name: 'BBC Learning English · The English We Speak',
-    level: '入门', region: 'uk', mins: 2, dur: '1周',
+    level: '入门', region: 'uk', mins: 2, dur: '1周', net: 'need',
     url: 'https://www.youtube.com/@bbclearningenglish',
     why: '每集 2 分钟讲一个地道口语表达，碎片时间可练。',
     tip: '适合通勤时循环跟读，不用刻意背'
   },
   {
     id: 'p4', name: 'English at University · 学术演讲',
-    level: '进阶', region: 'uk', mins: 12, dur: '5-6周',
+    level: '进阶', region: 'uk', mins: 12, dur: '5-6周', net: 'need',
     url: 'https://www.youtube.com/@EnglishatUniversity',
     why: '接近真实语速的讲座，练反应和长句理解。',
     tip: '先盲听 3 分钟做笔记，再看文稿对照，标记你没听出来的连读'
   },
   {
     id: 'p5', name: 'Al Jazeera English · 新闻访谈',
-    level: '拔高', region: 'uk', mins: 15, dur: '7-8周',
+    level: '拔高', region: 'uk', mins: 15, dur: '7-8周', net: 'need',
     url: 'https://www.youtube.com/@AlJazeeraEnglish',
     why: '英音，议题和贸易/经济强相关，语速真实。',
     tip: '挑经济类议题，一周 2 次，练习用新闻内容练复述'
-  },
-  {
-    id: 'p6', name: '哔哩哔哩 · 英文播客搬运',
-    level: '入门', region: 'us', mins: 15, dur: '按需',
-    url: 'https://www.bilibili.com',
-    why: 'B站上有不少英文原声播客和访谈搬运，可作补充语料。',
-    tip: '优先选能自动生成字幕的；避免"中国式英语"教学视频，跟着念会带偏口音'
   }
 ];
 
@@ -129,16 +147,25 @@ function renderPacks() {
 
   // 预置推荐
   box.appendChild(el('h3', null, '预置推荐素材（免费，按难度分档）'));
+  // 网络前提提示：实测这台机器 YouTube/BBC 不通，B站通
+  box.appendChild(el('div', 'net-note',
+    '<b>你的网络情况（实测）：</b>B站 ✅ 可以下 · GitHub ✅ · YouTube ❌ 被代理挡 · BBC ❌ 被挡' +
+    '　→ 优先用标「B站可用」的素材。下载用双击 <code>运行下载器.bat</code>，' +
+    '<a href="http://127.0.0.1:8765" target="_blank">点这里打开下载器</a>（要先双击 bat）'));
   const grid = el('div', 'preset-grid');
   PRESET_PACKS.forEach(p => {
     const reg = getRegion(p.region);
-    const c = el('div', 'preset');
+    const netTag = p.net === 'ok'
+      ? '<span class="pack-tag net-ok">B站可用</span>'
+      : '<span class="pack-tag net-need">需连 YouTube</span>';
+    const c = el('div', 'preset' + (p.net === 'ok' ? ' net-good' : ''));
     c.innerHTML = `
       <div class="preset-head">
         <div class="preset-name">${esc(p.name)}</div>
         <div class="preset-lv lv-${p.level === '入门' ? '1' : p.level === '进阶' ? '2' : '3'}">${esc(p.level)}</div>
       </div>
       <div class="preset-meta">
+        ${netTag}
         <span class="pack-tag">${esc(reg.short)}</span>
         <span class="pack-tag">单集 ${p.mins} 分钟</span>
         <span class="pack-tag">建议 ${esc(p.dur)}</span>
