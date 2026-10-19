@@ -449,6 +449,22 @@ audio{width:100%;height:34px}
 }
 .pack-del:hover{color:var(--coral);background:rgba(226,101,74,.12)}
 
+/* 网络可用性标注（B站可用 / 需连YouTube） */
+.net-ok{color:#7fa87f;border-color:rgba(127,168,127,.4);background:rgba(127,168,127,.12)}
+.net-need{color:#b8964a;border-color:rgba(184,150,74,.35);background:rgba(184,150,74,.10)}
+.preset.net-good{border-color:rgba(127,168,127,.35)}
+.net-note{
+  background:rgba(226,101,74,.07);border:1px solid rgba(226,101,74,.22);
+  border-radius:8px;padding:11px 14px;font-size:12.5px;line-height:1.7;
+  color:var(--tx-2);margin-bottom:14px;
+}
+.net-note b{color:var(--coral)}
+.net-note code{
+  background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px;
+  font:11px Consolas,monospace;color:var(--tx-1);
+}
+.net-note a{color:var(--blue);text-decoration:underline}
+
 .preset-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:8px}
 .preset{
   background:var(--surface-2);border:1px solid var(--line);
