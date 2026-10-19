@@ -2,3 +2,13 @@ dev/_shot_*.png
 dev/_m_*.png
 node_modules/
 .DS_Store
+
+# 下载器产物与大体积二进制，不入库
+download/
+*.mp3
+*.m4a
+*.srt
+*.vtt
+ffmpeg.exe
+yt-dlp.exe
+__pycache__/
